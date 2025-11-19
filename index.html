@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Unrestricted Browser AI</title>
+    <style>
+        /* --- デザイン（サイバーパンク風） --- */
+        body { background-color: #0d0d0d; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; }
+        
+        /* レイアウト */
+        .container { display: flex; gap: 20px; height: 90vh; }
+        .panel { flex: 1; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; background: #111; }
+        
+        /* 入力エリア */
+        textarea { flex: 1; background: #000; color: #ccc; border: 1px solid #00ff41; padding: 10px; font-family: inherit; resize: none; }
+        input[type="text"] { background: #000; color: #fff; border: 1px solid #00ff41; padding: 10px; width: 80%; }
+        
+        /* ボタン */
+        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 10px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button:hover { background: #00ff41; color: #000; }
+        
+        /* ログ表示 */
+        #chatLog { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; }
+        .ai-msg { color: #00ff41; margin-bottom: 8px; }
+        .user-msg { color: #fff; margin-bottom: 8px; text-align: right; }
+        
+        /* JSON表示エリア */
+        #brainState { font-size: 10px; color: #555; height: 100px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>UNRESTRICTED AI (JS/JSON Ver.)</h1>
+
+<div class="container">
+    <div class="panel">
+        <h3>1. 教育 (Training Data)</h3>
+        <p>ここに学習させたいテキストを大量に貼り付けてください。<br>制限はありません。どんな内容でも学習します。</p>
+        <textarea id="trainingText" placeholder="例：昔々あるところに..."></textarea>
+        <button onclick="trainAI()">学習実行 (Learn)</button>
+        
+        <hr style="width:100%; border-color:#333;">
+        
+        <h3>脳の状態 (JSON Data)</h3>
+        <p>学習結果はここにJSONとして保存されます。</p>
+        <textarea id="brainJson" readonly></textarea>
+        <button onclick="downloadJson()">JSONを保存 (Save)</button>
+        <input type="file" id="fileInput" style="display:none" onchange="loadJson(this)">
+        <button onclick="document.getElementById('fileInput').click()">JSONを読込 (Load)</button>
+    </div>
+
+    <div class="panel">
+        <h3>2. 対話 (Interaction)</h3>
+        <div id="chatLog"></div>
+        <div style="display: flex;">
+            <input type="text" id="userInput" placeholder="きっかけの言葉（空欄でもOK）">
+            <button onclick="generateText()" style="margin-top:0; width: 20%;">生成</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- AIの脳みそ (JSONデータが入る変数) ---
+    // 構造: { "文字A": ["次の文字候補1", "次の文字候補2", ...], ... }
+    let brain = {};
+    
+    // N-gramのN（何文字セットで記憶するか）。2か3が日本語にはおすすめ。
+    const ORDER = 3; 
+
+    // --- 1. 学習機能 (Training) ---
+    function trainAI() {
+        const text = document.getElementById('trainingText').value;
+        if (!text) return alert("テキストを入力してください");
+
+        // 既存の脳に追記するか、リセットするか選べるが、今回は追記型にする
+        // brain = {}; // リセットしたい場合はコメントアウトを外す
+
+        // テキストをスキャンして確率マップを作る
+        for (let i = 0; i < text.length - ORDER; i++) {
+            const gram = text.substring(i, i + ORDER);   // 現在の文字の並び
+            const nextChar = text.charAt(i + ORDER);     // その次に来る文字
+
+            if (!brain[gram]) {
+                brain[gram] = [];
+            }
+            brain[gram].push(nextChar);
+        }
+
+        // JSONを表示エリアに更新
+        updateBrainDisplay();
+        alert("学習完了。脳が更新されました。");
+    }
+
+    // --- 2. 生成機能 (Inference) ---
+    function generateText() {
+        const seed = document.getElementById('userInput').value;
+        let currentGram = seed.slice(-ORDER); // 入力の最後の数文字を「種」にする
+
+        // 種が足りない、または脳にない場合はランダムに選ぶ
+        if (currentGram.length < ORDER || !brain[currentGram]) {
+            const keys = Object.keys(brain);
+            if (keys.length === 0) return alert("まだ学習していません");
+            currentGram = keys[Math.floor(Math.random() * keys.length)];
+        }
+
+        let result = seed ? seed : currentGram; // 出力結果の初期値
+        
+        // 100文字くらい喋らせるループ
+        for (let i = 0; i < 100; i++) {
+            const possibilities = brain[currentGram];
+            
+            if (!possibilities) {
+                break; // 次の言葉が思いつかなければ終了
+            }
+
+            // 候補の中からランダムに1つ選ぶ（ここが確率的な思考）
+            const nextChar = possibilities[Math.floor(Math.random() * possibilities.length)];
+            
+            result += nextChar;
+            
+            // 次のループのためにスライドさせる
+            currentGram = result.slice(-ORDER);
+        }
+
+        // 画面に出力
+        const log = document.getElementById('chatLog');
+        log.innerHTML += `<div class="user-msg">> ${seed}</div>`;
+        log.innerHTML += `<div class="ai-msg">${result}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // --- ユーティリティ ---
+    function updateBrainDisplay() {
+        // 脳の中身をJSON文字列にして表示
+        document.getElementById('brainJson').value = JSON.stringify(brain);
+    }
+
+    function downloadJson() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(brain));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "ai_brain.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function loadJson(input) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            brain = JSON.parse(e.target.result);
+            updateBrainDisplay();
+            alert("JSONデータをロードしました");
+        };
+        reader.readAsText(file);
+    }
+</script>
+
+</body>
+</html>
