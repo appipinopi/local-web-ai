@@ -2,55 +2,96 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>All-in-One Browser AI</title>
+    <title>Unrestricted AI V0.0.3</title>
     <style>
-        /* --- デザイン設定 --- */
-        body { background-color: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; text-transform: uppercase; }
+        /* --- 全体デザイン (Dark & Cyber) --- */
+        body { background-color: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; overflow: hidden; }
+        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; text-transform: uppercase; font-size: 20px; }
         
-        .container { display: flex; gap: 20px; height: 85vh; }
+        /* --- レイアウト --- */
+        .container { display: flex; gap: 20px; height: 85vh; transition: filter 0.3s; }
         .panel { flex: 1; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; background: #111; }
         
-        /* 入力・ボタン */
-        input[type="text"], textarea { background: #000; color: #fff; border: 1px solid #006600; padding: 10px; font-family: inherit; }
-        input[type="text"] { width: 70%; }
+        /* --- 入力・ボタン --- */
+        input[type="text"] { background: #000; color: #fff; border: 1px solid #006600; padding: 10px; width: 60%; font-family: inherit; }
         
-        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 10px; cursor: pointer; font-weight: bold; margin-left: 5px; }
+        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 8px 15px; cursor: pointer; font-weight: bold; margin-left: 5px; transition: 0.2s; }
         button:hover { background: #00ff41; color: #000; }
-        button:disabled { background: #333; color: #555; border-color: #555; cursor: not-allowed; }
+        button:disabled { background: #222; color: #555; border-color: #444; cursor: not-allowed; }
+        
+        button.stop-btn { border-color: #ff3333; color: #ff3333; background: #220000; }
+        button.stop-btn:hover { background: #ff3333; color: #fff; }
 
-        /* ログ・表示エリア */
-        #statusLog { height: 150px; overflow-y: auto; border: 1px solid #333; padding: 5px; margin-top: 10px; font-size: 12px; color: #aaa; }
-        #chatLog { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; }
+        button.danger-btn { border-color: #ff9900; color: #ff9900; margin-top: 10px; font-size: 10px; }
+
+        /* --- ログ・表示エリア --- */
+        #statusLog { height: 150px; overflow-y: auto; border: 1px solid #333; padding: 5px; margin-top: 10px; font-size: 12px; color: #aaa; background: #000; }
+        #chatLog { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; background: #080808; }
         
         .ai-msg { color: #00ff41; margin-bottom: 8px; border-left: 2px solid #00ff41; padding-left: 10px; }
         .user-msg { color: #fff; margin-bottom: 8px; text-align: right; }
         
-        /* データ量表示 */
         .stats { font-size: 12px; color: #666; margin-top: 5px; text-align: right; }
+
+        /* --- 同意モーダル (Overlay) --- */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        .modal-box {
+            border: 2px solid #ff3333; background: #110000; padding: 30px; 
+            text-align: center; max-width: 500px; color: #ffcccc;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+        .modal-title { color: #ff3333; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+        .modal-text { margin-bottom: 30px; line-height: 1.6; font-size: 14px; }
+        .agree-btn { background: #ff3333; color: #000; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .agree-btn:hover { background: #fff; color: #ff0000; }
+
     </style>
 </head>
 <body>
 
-<h1>Unlimited AI - Web Crawler Edition</h1>
+<div id="overlay">
+    <div class="modal-box">
+        <div class="modal-title">WARNING: RESTRICTED AREA</div>
+        <div class="modal-text">
+            このAIプログラムには、道徳的・倫理的なフィルターおよび安全装置が一切搭載されていません。<br><br>
+            入力されたURL先のデータを無差別に収集・学習するため、
+            予期しない不適切な発言や、攻撃的な文章を生成する可能性があります。<br><br>
+            利用者はこれを理解し、生成された結果について全責任を負うものとします。
+        </div>
+        <button class="agree-btn" onclick="acceptTerms()">同意して起動する</button>
+    </div>
+</div>
+
+<h1>Unrestricted AI V0.0.3 [Auto-Save Enabled]</h1>
 
 <div class="container">
     <div class="panel">
         <h3>1. 知識の吸収 (Crawl & Learn)</h3>
-        <div>
+        <div style="display:flex;">
             <input type="text" id="targetUrl" placeholder="https://ja.wikipedia.org/wiki/...">
-            <button id="btnStart" onclick="startCrawling()">収集開始</button>
+            <button id="btnStart" onclick="startCrawling()">開始</button>
+            <button id="btnStop" class="stop-btn" onclick="stopCrawling()" disabled>停止</button>
         </div>
-        <div class="stats">読み込むページ上限: <span id="pageLimit">20</span> | 収集済みパターン数: <span id="brainSize">0</span></div>
+        <div class="stats">
+            Page Limit: <span id="pageLimit">30</span> | 
+            Brain Patterns: <span id="brainSize">0</span>
+        </div>
         
-        <div id="statusLog">ログ待機中...</div>
+        <div id="statusLog">システム待機中...<br>> 同意待ち...</div>
 
         <hr style="width:100%; border-color:#333; margin: 15px 0;">
         
-        <h3>脳の管理</h3>
-        <button onclick="downloadJson()">脳データを保存 (Save JSON)</button>
-        <input type="file" id="fileInput" style="display:none" onchange="loadJson(this)">
-        <button onclick="document.getElementById('fileInput').click()">脳データを読込 (Load JSON)</button>
+        <h3>メモリ管理</h3>
+        <button onclick="downloadJson()">JSONとしてバックアップ (Save)</button>
+        <input type="file" id="fileInput" style="display:none" onchange="loadJsonFile(this)">
+        <button onclick="document.getElementById('fileInput').click()">JSONを読込 (Load)</button>
+        <button class="danger-btn" onclick="clearMemory()">[危険] メモリ全消去</button>
     </div>
 
     <div class="panel">
@@ -65,72 +106,120 @@
 
 <script>
     // --- AIの設定 ---
-    const ORDER = 3; // 何文字セットで覚えるか
-    let brain = {};  // AIの脳みそ
-    
-    // --- クローラーの設定 ---
-    const MAX_PAGES = 20; // ブラウザが重くならないよう制限（増やしても良いが自己責任）
+    const ORDER = 3; 
+    let brain = {};  
+    const LOCAL_STORAGE_KEY = "ai_brain_data_v2";
+
+    // --- クローラー制御変数 ---
+    const MAX_PAGES = 30; 
     let visitedUrls = new Set();
     let urlQueue = [];
     let isCrawling = false;
+    let stopRequested = false; // 停止フラグ
 
-    // ログ表示用
+    // --- 0. 初期化と同意処理 ---
+    function acceptTerms() {
+        document.getElementById('overlay').style.display = 'none';
+        log("アクセス権限を確認。システム起動。");
+        loadFromLocalStorage(); // 起動時に保存データを読み込む
+    }
+
     function log(msg) {
         const div = document.getElementById('statusLog');
         div.innerHTML += `<div>> ${msg}</div>`;
         div.scrollTop = div.scrollHeight;
     }
 
-    // --- 1. Webクローラー機能 (CORS回避版) ---
+    // --- 1. ローカルストレージ管理 (自動保存) ---
+    function saveToLocalStorage() {
+        try {
+            const data = JSON.stringify(brain);
+            localStorage.setItem(LOCAL_STORAGE_KEY, data);
+            log("システム: メモリをローカルに自動保存しました。");
+        } catch (e) {
+            log("エラー: ブラウザの保存容量が一杯です。JSON保存を使用してください。");
+        }
+    }
+
+    function loadFromLocalStorage() {
+        const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (data) {
+            try {
+                brain = JSON.parse(data);
+                updateStats();
+                log(`復元完了: 前回の学習データ (${Object.keys(brain).length} パターン) をロードしました。`);
+            } catch (e) {
+                log("データ破損のため復元できませんでした。");
+            }
+        } else {
+            log("保存されたデータはありません。新規作成します。");
+        }
+    }
+
+    function clearMemory() {
+        if(confirm("本当に学習データを全て消去しますか？この操作は取り消せません。")) {
+            brain = {};
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            updateStats();
+            log("メモリを初期化しました。");
+        }
+    }
+
+    // --- 2. Webクローラー機能 (停止機能付き) ---
     async function startCrawling() {
         const startUrl = document.getElementById('targetUrl').value;
         if (!startUrl) return alert("URLを入力してください");
         if (isCrawling) return;
 
         isCrawling = true;
+        stopRequested = false;
+        
+        // ボタン状態更新
         document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnStop').disabled = false;
+        document.getElementById('btnStop').innerText = "停止";
+
         visitedUrls.clear();
         urlQueue = [startUrl];
         let pageCount = 0;
-
-        // ドメイン制限用（他サイトへ飛んでいかないようにする）
         const baseDomain = new URL(startUrl).hostname;
 
         log(`収集開始: ${startUrl}`);
 
         while (urlQueue.length > 0 && pageCount < MAX_PAGES) {
+            // ■ 停止チェックポイント
+            if (stopRequested) {
+                log("!!! ユーザーによる強制停止 !!!");
+                break;
+            }
+
             const currentUrl = urlQueue.shift();
-            
             if (visitedUrls.has(currentUrl)) continue;
             visitedUrls.add(currentUrl);
 
             try {
                 log(`[${pageCount + 1}/${MAX_PAGES}] 読込中: ${currentUrl}`);
                 
-                // プロキシ経由でHTMLを取得 (AllOrigins APIを使用)
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(currentUrl)}`;
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
                 
-                if (!data.contents) throw new Error("データ取得失敗");
+                if (!data.contents) throw new Error("取得失敗");
 
-                // 仮想DOMを作ってHTMLを解析
+                // 解析
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(data.contents, 'text/html');
+                
+                // 不要タグ削除
+                doc.querySelectorAll('script, style, noscript, iframe').forEach(el => el.remove());
 
-                // 不要なタグ（スクリプト等）を削除
-                const scripts = doc.querySelectorAll('script, style, noscript, iframe');
-                scripts.forEach(el => el.remove());
-
-                // テキストを抽出して学習
+                // 学習
                 const text = doc.body.textContent || "";
                 trainBrain(text);
 
-                // ページ内のリンクを抽出してキューに追加
-                const links = doc.querySelectorAll('a');
-                links.forEach(a => {
+                // リンク収集
+                doc.querySelectorAll('a').forEach(a => {
                     try {
-                        // 相対パスを絶対パスに直す（簡易処理）
                         const href = new URL(a.getAttribute('href'), currentUrl).href;
                         if (href.includes(baseDomain) && !visitedUrls.has(href)) {
                             urlQueue.push(href);
@@ -139,62 +228,67 @@
                 });
 
                 pageCount++;
-                // サーバー負荷軽減のため少し待つ（ブロッキングではないが擬似的に）
+                updateStats();
+                
+                // ■ 停止リクエストへの反応性を高めるための待機
                 await new Promise(r => setTimeout(r, 500));
 
             } catch (err) {
-                log(`エラー: ${err.message}`);
+                log(`スキップ: ${err.message}`);
             }
         }
 
-        log("--- 収集完了 ---");
+        log("--- セッション終了 ---");
+        
+        // 終了時の処理
         isCrawling = false;
         document.getElementById('btnStart').disabled = false;
-        alert("データ収集が完了しました！右側のパネルで会話できます。");
+        document.getElementById('btnStop').disabled = true;
+        
+        // 自動保存
+        saveToLocalStorage();
     }
 
-    // --- 2. 学習ロジック (Markov Chain) ---
+    function stopCrawling() {
+        if (isCrawling) {
+            stopRequested = true;
+            document.getElementById('btnStop').innerText = "停止中...";
+        }
+    }
+
+    // --- 3. 学習ロジック ---
     function trainBrain(text) {
-        // 空白整理
         text = text.replace(/\s+/g, ' ').trim();
         if (text.length < ORDER) return;
 
-        let count = 0;
         for (let i = 0; i < text.length - ORDER; i++) {
             const gram = text.substring(i, i + ORDER);
             const nextChar = text.charAt(i + ORDER);
-
-            if (!brain[gram]) {
-                brain[gram] = [];
-            }
+            if (!brain[gram]) brain[gram] = [];
             brain[gram].push(nextChar);
-            count++;
         }
+    }
+
+    function updateStats() {
         document.getElementById('brainSize').innerText = Object.keys(brain).length;
     }
 
-    // --- 3. 生成ロジック (Generation) ---
+    // --- 4. 生成ロジック ---
     function generateText() {
         const seed = document.getElementById('userInput').value;
-        
-        // 脳が空っぽの場合
         const keys = Object.keys(brain);
-        if (keys.length === 0) return alert("まずはURLを入れて学習させてください！");
+        if (keys.length === 0) return alert("データがありません。URLを入れて学習させてください。");
 
         let currentGram = seed.slice(-ORDER);
-        
-        // 脳にない言葉、または空欄ならランダムに開始
         if (!brain[currentGram]) {
             currentGram = keys[Math.floor(Math.random() * keys.length)];
         }
 
         let result = seed ? seed : currentGram;
         
-        // 文章生成ループ
-        for (let i = 0; i < 150; i++) {
+        for (let i = 0; i < 200; i++) {
             const possibilities = brain[currentGram];
-            if (!possibilities) break; // 行き止まり
-
+            if (!possibilities) break;
             const nextChar = possibilities[Math.floor(Math.random() * possibilities.length)];
             result += nextChar;
             currentGram = result.slice(-ORDER);
@@ -211,17 +305,18 @@
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(brain));
         const a = document.createElement('a');
         a.href = dataStr;
-        a.download = "ai_brain_web.json";
+        a.download = "ai_brain_backup.json";
         a.click();
     }
 
-    function loadJson(input) {
+    function loadJsonFile(input) {
         const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
             brain = JSON.parse(e.target.result);
-            document.getElementById('brainSize').innerText = Object.keys(brain).length;
-            alert("脳データを復元しました");
+            updateStats();
+            saveToLocalStorage(); // ファイルから読み込んだら即座にローカル保存も更新
+            log("外部ファイルをロードし、メモリに展開しました。");
         };
         reader.readAsText(file);
     }
