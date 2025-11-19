@@ -2,148 +2,217 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Unrestricted Browser AI</title>
+    <title>All-in-One Browser AI</title>
     <style>
-        /* --- デザイン（サイバーパンク風） --- */
-        body { background-color: #0d0d0d; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
-        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; }
+        /* --- デザイン設定 --- */
+        body { background-color: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 10px; text-transform: uppercase; }
         
-        /* レイアウト */
-        .container { display: flex; gap: 20px; height: 90vh; }
+        .container { display: flex; gap: 20px; height: 85vh; }
         .panel { flex: 1; border: 1px solid #333; padding: 15px; display: flex; flex-direction: column; background: #111; }
         
-        /* 入力エリア */
-        textarea { flex: 1; background: #000; color: #ccc; border: 1px solid #00ff41; padding: 10px; font-family: inherit; resize: none; }
-        input[type="text"] { background: #000; color: #fff; border: 1px solid #00ff41; padding: 10px; width: 80%; }
+        /* 入力・ボタン */
+        input[type="text"], textarea { background: #000; color: #fff; border: 1px solid #006600; padding: 10px; font-family: inherit; }
+        input[type="text"] { width: 70%; }
         
-        /* ボタン */
-        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 10px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 10px; cursor: pointer; font-weight: bold; margin-left: 5px; }
         button:hover { background: #00ff41; color: #000; }
-        
-        /* ログ表示 */
+        button:disabled { background: #333; color: #555; border-color: #555; cursor: not-allowed; }
+
+        /* ログ・表示エリア */
+        #statusLog { height: 150px; overflow-y: auto; border: 1px solid #333; padding: 5px; margin-top: 10px; font-size: 12px; color: #aaa; }
         #chatLog { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; }
-        .ai-msg { color: #00ff41; margin-bottom: 8px; }
+        
+        .ai-msg { color: #00ff41; margin-bottom: 8px; border-left: 2px solid #00ff41; padding-left: 10px; }
         .user-msg { color: #fff; margin-bottom: 8px; text-align: right; }
         
-        /* JSON表示エリア */
-        #brainState { font-size: 10px; color: #555; height: 100px; margin-top: 10px; }
+        /* データ量表示 */
+        .stats { font-size: 12px; color: #666; margin-top: 5px; text-align: right; }
     </style>
 </head>
 <body>
 
-<h1>UNRESTRICTED AI (JS/JSON Ver.)</h1>
+<h1>Unlimited AI - Web Crawler Edition</h1>
 
 <div class="container">
     <div class="panel">
-        <h3>1. 教育 (Training Data)</h3>
-        <p>ここに学習させたいテキストを大量に貼り付けてください。<br>制限はありません。どんな内容でも学習します。</p>
-        <textarea id="trainingText" placeholder="例：昔々あるところに..."></textarea>
-        <button onclick="trainAI()">学習実行 (Learn)</button>
+        <h3>1. 知識の吸収 (Crawl & Learn)</h3>
+        <div>
+            <input type="text" id="targetUrl" placeholder="https://ja.wikipedia.org/wiki/...">
+            <button id="btnStart" onclick="startCrawling()">収集開始</button>
+        </div>
+        <div class="stats">読み込むページ上限: <span id="pageLimit">20</span> | 収集済みパターン数: <span id="brainSize">0</span></div>
         
-        <hr style="width:100%; border-color:#333;">
+        <div id="statusLog">ログ待機中...</div>
+
+        <hr style="width:100%; border-color:#333; margin: 15px 0;">
         
-        <h3>脳の状態 (JSON Data)</h3>
-        <p>学習結果はここにJSONとして保存されます。</p>
-        <textarea id="brainJson" readonly></textarea>
-        <button onclick="downloadJson()">JSONを保存 (Save)</button>
+        <h3>脳の管理</h3>
+        <button onclick="downloadJson()">脳データを保存 (Save JSON)</button>
         <input type="file" id="fileInput" style="display:none" onchange="loadJson(this)">
-        <button onclick="document.getElementById('fileInput').click()">JSONを読込 (Load)</button>
+        <button onclick="document.getElementById('fileInput').click()">脳データを読込 (Load JSON)</button>
     </div>
 
     <div class="panel">
         <h3>2. 対話 (Interaction)</h3>
         <div id="chatLog"></div>
         <div style="display: flex;">
-            <input type="text" id="userInput" placeholder="きっかけの言葉（空欄でもOK）">
-            <button onclick="generateText()" style="margin-top:0; width: 20%;">生成</button>
+            <input type="text" id="userInput" placeholder="きっかけの言葉" style="flex:1;">
+            <button onclick="generateText()">生成</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- AIの脳みそ (JSONデータが入る変数) ---
-    // 構造: { "文字A": ["次の文字候補1", "次の文字候補2", ...], ... }
-    let brain = {};
+    // --- AIの設定 ---
+    const ORDER = 3; // 何文字セットで覚えるか
+    let brain = {};  // AIの脳みそ
     
-    // N-gramのN（何文字セットで記憶するか）。2か3が日本語にはおすすめ。
-    const ORDER = 3; 
+    // --- クローラーの設定 ---
+    const MAX_PAGES = 20; // ブラウザが重くならないよう制限（増やしても良いが自己責任）
+    let visitedUrls = new Set();
+    let urlQueue = [];
+    let isCrawling = false;
 
-    // --- 1. 学習機能 (Training) ---
-    function trainAI() {
-        const text = document.getElementById('trainingText').value;
-        if (!text) return alert("テキストを入力してください");
+    // ログ表示用
+    function log(msg) {
+        const div = document.getElementById('statusLog');
+        div.innerHTML += `<div>> ${msg}</div>`;
+        div.scrollTop = div.scrollHeight;
+    }
 
-        // 既存の脳に追記するか、リセットするか選べるが、今回は追記型にする
-        // brain = {}; // リセットしたい場合はコメントアウトを外す
+    // --- 1. Webクローラー機能 (CORS回避版) ---
+    async function startCrawling() {
+        const startUrl = document.getElementById('targetUrl').value;
+        if (!startUrl) return alert("URLを入力してください");
+        if (isCrawling) return;
 
-        // テキストをスキャンして確率マップを作る
+        isCrawling = true;
+        document.getElementById('btnStart').disabled = true;
+        visitedUrls.clear();
+        urlQueue = [startUrl];
+        let pageCount = 0;
+
+        // ドメイン制限用（他サイトへ飛んでいかないようにする）
+        const baseDomain = new URL(startUrl).hostname;
+
+        log(`収集開始: ${startUrl}`);
+
+        while (urlQueue.length > 0 && pageCount < MAX_PAGES) {
+            const currentUrl = urlQueue.shift();
+            
+            if (visitedUrls.has(currentUrl)) continue;
+            visitedUrls.add(currentUrl);
+
+            try {
+                log(`[${pageCount + 1}/${MAX_PAGES}] 読込中: ${currentUrl}`);
+                
+                // プロキシ経由でHTMLを取得 (AllOrigins APIを使用)
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(currentUrl)}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (!data.contents) throw new Error("データ取得失敗");
+
+                // 仮想DOMを作ってHTMLを解析
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+
+                // 不要なタグ（スクリプト等）を削除
+                const scripts = doc.querySelectorAll('script, style, noscript, iframe');
+                scripts.forEach(el => el.remove());
+
+                // テキストを抽出して学習
+                const text = doc.body.textContent || "";
+                trainBrain(text);
+
+                // ページ内のリンクを抽出してキューに追加
+                const links = doc.querySelectorAll('a');
+                links.forEach(a => {
+                    try {
+                        // 相対パスを絶対パスに直す（簡易処理）
+                        const href = new URL(a.getAttribute('href'), currentUrl).href;
+                        if (href.includes(baseDomain) && !visitedUrls.has(href)) {
+                            urlQueue.push(href);
+                        }
+                    } catch(e) {}
+                });
+
+                pageCount++;
+                // サーバー負荷軽減のため少し待つ（ブロッキングではないが擬似的に）
+                await new Promise(r => setTimeout(r, 500));
+
+            } catch (err) {
+                log(`エラー: ${err.message}`);
+            }
+        }
+
+        log("--- 収集完了 ---");
+        isCrawling = false;
+        document.getElementById('btnStart').disabled = false;
+        alert("データ収集が完了しました！右側のパネルで会話できます。");
+    }
+
+    // --- 2. 学習ロジック (Markov Chain) ---
+    function trainBrain(text) {
+        // 空白整理
+        text = text.replace(/\s+/g, ' ').trim();
+        if (text.length < ORDER) return;
+
+        let count = 0;
         for (let i = 0; i < text.length - ORDER; i++) {
-            const gram = text.substring(i, i + ORDER);   // 現在の文字の並び
-            const nextChar = text.charAt(i + ORDER);     // その次に来る文字
+            const gram = text.substring(i, i + ORDER);
+            const nextChar = text.charAt(i + ORDER);
 
             if (!brain[gram]) {
                 brain[gram] = [];
             }
             brain[gram].push(nextChar);
+            count++;
         }
-
-        // JSONを表示エリアに更新
-        updateBrainDisplay();
-        alert("学習完了。脳が更新されました。");
+        document.getElementById('brainSize').innerText = Object.keys(brain).length;
     }
 
-    // --- 2. 生成機能 (Inference) ---
+    // --- 3. 生成ロジック (Generation) ---
     function generateText() {
         const seed = document.getElementById('userInput').value;
-        let currentGram = seed.slice(-ORDER); // 入力の最後の数文字を「種」にする
+        
+        // 脳が空っぽの場合
+        const keys = Object.keys(brain);
+        if (keys.length === 0) return alert("まずはURLを入れて学習させてください！");
 
-        // 種が足りない、または脳にない場合はランダムに選ぶ
-        if (currentGram.length < ORDER || !brain[currentGram]) {
-            const keys = Object.keys(brain);
-            if (keys.length === 0) return alert("まだ学習していません");
+        let currentGram = seed.slice(-ORDER);
+        
+        // 脳にない言葉、または空欄ならランダムに開始
+        if (!brain[currentGram]) {
             currentGram = keys[Math.floor(Math.random() * keys.length)];
         }
 
-        let result = seed ? seed : currentGram; // 出力結果の初期値
+        let result = seed ? seed : currentGram;
         
-        // 100文字くらい喋らせるループ
-        for (let i = 0; i < 100; i++) {
+        // 文章生成ループ
+        for (let i = 0; i < 150; i++) {
             const possibilities = brain[currentGram];
-            
-            if (!possibilities) {
-                break; // 次の言葉が思いつかなければ終了
-            }
+            if (!possibilities) break; // 行き止まり
 
-            // 候補の中からランダムに1つ選ぶ（ここが確率的な思考）
             const nextChar = possibilities[Math.floor(Math.random() * possibilities.length)];
-            
             result += nextChar;
-            
-            // 次のループのためにスライドさせる
             currentGram = result.slice(-ORDER);
         }
 
-        // 画面に出力
-        const log = document.getElementById('chatLog');
-        log.innerHTML += `<div class="user-msg">> ${seed}</div>`;
-        log.innerHTML += `<div class="ai-msg">${result}</div>`;
-        log.scrollTop = log.scrollHeight;
+        const logDiv = document.getElementById('chatLog');
+        logDiv.innerHTML += `<div class="user-msg">> ${seed}</div>`;
+        logDiv.innerHTML += `<div class="ai-msg">${result}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
     }
 
     // --- ユーティリティ ---
-    function updateBrainDisplay() {
-        // 脳の中身をJSON文字列にして表示
-        document.getElementById('brainJson').value = JSON.stringify(brain);
-    }
-
     function downloadJson() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(brain));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "ai_brain.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = "ai_brain_web.json";
+        a.click();
     }
 
     function loadJson(input) {
@@ -151,8 +220,8 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             brain = JSON.parse(e.target.result);
-            updateBrainDisplay();
-            alert("JSONデータをロードしました");
+            document.getElementById('brainSize').innerText = Object.keys(brain).length;
+            alert("脳データを復元しました");
         };
         reader.readAsText(file);
     }
