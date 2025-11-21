@@ -1,4 +1,4 @@
-Unrestricted AI (Browser Edition) - Ver.0.0.5
+* Unrestricted AI (Browser Edition) - Ver.0.0.5
 
 Unrestricted AI は、ブラウザひとつで完結する、制限のない学習型テキスト生成AIです。
 サーバーやPython環境は不要。単一のHTMLファイルのみで動作し、入力されたあらゆるテキストデータを無差別に学習・模倣します。
