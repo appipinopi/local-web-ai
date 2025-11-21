@@ -2,173 +2,186 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Unrestricted AI v0.0.4</title>
+    <title>Unrestricted AI v0.0.5 [Synthesis]</title>
     <style>
-        /* --- デザイン設定 (Cyber Dark) --- */
-        body { background-color: #050505; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 20px; overflow: hidden; }
-        h1 { border-bottom: 1px solid #00ff41; padding-bottom: 5px; font-size: 18px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        /* --- デザイン設定 (Cyber Dark v5) --- */
+        body { background-color: #020202; color: #00ff41; font-family: 'Courier New', monospace; margin: 0; padding: 15px; overflow: hidden; }
         
-        /* --- レイアウト --- */
-        .container { display: flex; gap: 15px; height: 88vh; }
-        .panel { flex: 1; border: 1px solid #333; padding: 10px; display: flex; flex-direction: column; background: #111; }
-        
-        /* --- UIパーツ --- */
-        input[type="text"], textarea { background: #000; color: #fff; border: 1px solid #006600; padding: 8px; font-family: inherit; width: 100%; box-sizing: border-box; }
-        textarea { resize: none; height: 80px; font-size: 11px; }
-        
-        button { background: #003300; color: #00ff41; border: 1px solid #00ff41; padding: 5px 10px; cursor: pointer; font-weight: bold; margin-top: 5px; transition: 0.2s; font-size: 12px; }
-        button:hover { background: #00ff41; color: #000; }
-        button:disabled { background: #222; color: #555; border-color: #444; cursor: not-allowed; }
-        
-        .stop-btn { border-color: #ff3333; color: #ff3333; background: #220000; }
-        .stop-btn:hover { background: #ff3333; color: #fff; }
-        
-        .danger-btn { border-color: #ff9900; color: #ff9900; margin-left: auto; }
+        /* ヘッダー */
+        header { border-bottom: 1px solid #00ff41; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: end; }
+        h1 { margin: 0; font-size: 18px; letter-spacing: 2px; }
+        .version-tag { font-size: 10px; background: #003300; padding: 2px 5px; border: 1px solid #00ff41; }
 
-        /* --- 学習セクションの区切り --- */
-        .learning-section { border: 1px solid #222; padding: 8px; margin-bottom: 10px; background: #0a0a0a; }
-        .section-title { font-size: 12px; color: #aaa; margin-bottom: 5px; border-bottom: 1px dashed #333; padding-bottom: 2px; font-weight: bold; }
+        /* レイアウト */
+        .container { display: flex; gap: 15px; height: 90vh; }
+        .panel { flex: 1; border: 1px solid #333; padding: 10px; display: flex; flex-direction: column; background: #0a0a0a; }
+        
+        /* UIパーツ */
+        input[type="text"], textarea { background: #000; color: #fff; border: 1px solid #005500; padding: 8px; font-family: inherit; width: 100%; box-sizing: border-box; }
+        input[type="text"]:focus, textarea:focus { border-color: #00ff41; outline: none; }
+        textarea { resize: none; height: 70px; font-size: 11px; }
+        
+        button { background: #002200; color: #00cc33; border: 1px solid #005500; padding: 6px 10px; cursor: pointer; font-size: 11px; transition: 0.2s; }
+        button:hover { background: #00ff41; color: #000; border-color: #00ff41; }
+        button:disabled { background: #111; color: #444; border-color: #333; cursor: not-allowed; }
+        
+        .stop-btn { border-color: #cc0000; color: #cc0000; background: #220000; }
+        .stop-btn:hover { background: #ff0000; color: #fff; }
+        
+        .danger-btn { border-color: #ff8800; color: #ff8800; font-size: 10px; }
+        .merge-btn { border-color: #0088ff; color: #0088ff; background: #001122; }
+        .merge-btn:hover { background: #0088ff; color: #fff; }
 
-        /* --- ログ・表示エリア --- */
-        #statusLog { height: 80px; overflow-y: auto; border: 1px solid #333; padding: 5px; font-size: 10px; color: #888; background: #000; margin-bottom: 10px; }
+        /* 区画 */
+        .learning-section { border: 1px solid #1a1a1a; padding: 8px; margin-bottom: 8px; background: #050505; }
+        .section-title { font-size: 11px; color: #666; margin-bottom: 5px; border-bottom: 1px dashed #333; display: flex; justify-content: space-between; }
+
+        /* ログ */
+        #statusLog { height: 80px; overflow-y: auto; border: 1px solid #333; padding: 5px; font-size: 10px; color: #888; background: #000; margin-bottom: 5px; font-family: Consolas, monospace; }
         #chatLog { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; background: #080808; }
         
         .ai-msg { color: #00ff41; margin-bottom: 8px; border-left: 2px solid #00ff41; padding-left: 10px; }
-        .user-msg { color: #fff; margin-bottom: 8px; text-align: right; }
+        .user-msg { color: #ddd; margin-bottom: 8px; text-align: right; font-size: 14px; }
         
-        /* --- スイッチ --- */
-        .toggle-label { display: flex; align-items: center; font-size: 12px; color: #fff; margin-top: 5px; cursor: pointer; }
-        .toggle-label input { margin-right: 5px; }
+        /* チェックボックス類 */
+        .opt-label { display: flex; align-items: center; font-size: 11px; color: #aaa; margin-top: 3px; cursor: pointer; }
+        .opt-label input { margin-right: 5px; }
 
-        /* --- モーダル --- */
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(5px); }
-        .modal-box { border: 2px solid #ff3333; background: #110000; padding: 30px; text-align: center; max-width: 500px; color: #ffcccc; box-shadow: 0 0 20px rgba(255, 0, 0, 0.3); }
-        .agree-btn { background: #ff3333; color: #000; border: none; padding: 15px 30px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .agree-btn:hover { background: #fff; color: #ff0000; }
+        /* モーダル */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.96); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .modal-box { border: 1px solid #ff3333; background: #0a0000; padding: 30px; text-align: center; max-width: 450px; color: #ffcccc; box-shadow: 0 0 30px rgba(255, 0, 0, 0.2); }
     </style>
 </head>
 <body>
 
 <div id="overlay">
     <div class="modal-box">
-        <h2 style="color:#ff3333; margin-top:0;">UNRESTRICTED AI v0.0.4</h2>
-        <p style="font-size:13px; text-align:left;">
-            このシステムは、入力されたあらゆるデータ（URL、テキスト、会話）を無差別に学習します。<br>
-            倫理的なフィルターや安全装置はありません。<br><br>
-            【注意】<br>
-            ページを閉じると学習データは消滅します。<br>
-            必要な場合はJSON保存機能を使用してください。
+        <h2 style="color:#ff3333; margin-top:0;">WARNING: AI V0.0.5</h2>
+        <p style="font-size:12px; text-align:left; line-height:1.6;">
+            <strong>[機能更新]</strong><br>
+            ・データ合成機能の実装<br>
+            ・カンマ区切りによる一括学習<br>
+            ・旧バージョンデータとの互換性確保<br><br>
+            本システムは倫理フィルターを持たず、入力データを無差別に学習・合成します。
+            生成結果に対する全責任は利用者が負うものとします。
         </p>
-        <button class="agree-btn" onclick="acceptTerms()">システム起動</button>
+        <button onclick="acceptTerms()" style="width:100%; padding:10px; border-color:#ff3333; color:#ff3333; background:#220000; margin-top:10px;">同意して起動 (INITIALIZE)</button>
     </div>
 </div>
 
-<h1>
-    <span>AI v0.0.4 [Multi-Input]</span>
-    <span style="font-size:12px; color:#666;">Patterns: <span id="brainSize" style="color:#fff;">0</span></span>
-</h1>
+<header>
+    <h1>UNRESTRICTED AI <span class="version-tag">V0.0.5</span></h1>
+    <div style="font-size:11px; color:#666;">MEMORY: <span id="brainSize" style="color:#fff;">0</span> Patterns</div>
+</header>
 
 <div class="container">
-    <div class="panel" style="flex: 0 0 40%;">
+    <div class="panel" style="flex: 0 0 38%;">
+        
         <div class="learning-section">
-            <div class="section-title">1. Web Crawler (URL)</div>
+            <div class="section-title">1. WEB CRAWLER</div>
             <div style="display:flex; gap:5px;">
-                <input type="text" id="targetUrl" placeholder="https://...">
+                <input type="text" id="targetUrl" placeholder="https://example.com">
                 <button id="btnStart" onclick="startCrawling()">開始</button>
                 <button id="btnStop" class="stop-btn" onclick="stopCrawling()" disabled>停止</button>
             </div>
-            <div style="font-size:10px; text-align:right; color:#555; margin-top:2px;">Page Limit: 30</div>
         </div>
 
         <div class="learning-section">
-            <div class="section-title">2. Direct Injection (Text/File)</div>
-            <textarea id="manualText" placeholder="ここに文章を貼り付けて「学習」を押すか、.txtファイルを読み込んでください"></textarea>
+            <div class="section-title">
+                <span>2. TEXT INJECTION</span>
+                <label class="opt-label" title="カンマ(,)で区切って複数の要素として学習します"><input type="checkbox" id="commaMode">カンマ区切りモード</label>
+            </div>
+            <textarea id="manualText" placeholder="テキスト貼り付け / 単語リスト(例: りんご,ゴリラ,ラッパ)"></textarea>
             <div style="display:flex; gap:5px; margin-top:5px;">
-                <button onclick="learnManualText()" style="flex:1;">テキスト学習</button>
-                <input type="file" id="txtFileInput" style="display:none" accept=".txt" onchange="loadTxtFile(this)">
+                <button onclick="learnManualText()" style="flex:1;">学習 (Inject)</button>
                 <button onclick="document.getElementById('txtFileInput').click()" style="flex:1;">.txt 読込</button>
+                <input type="file" id="txtFileInput" style="display:none" accept=".txt" onchange="loadTxtFile(this)">
             </div>
         </div>
 
-        <div id="statusLog">待機中...</div>
+        <div id="statusLog">System Ready...</div>
 
         <div class="learning-section" style="margin-top:auto;">
-            <div class="section-title">Memory Management</div>
-            <div style="display:flex; gap:5px;">
-                <button onclick="downloadJson()" style="flex:1;">JSON保存</button>
-                <input type="file" id="jsonFileInput" style="display:none" onchange="loadJsonFile(this)">
-                <button onclick="document.getElementById('jsonFileInput').click()" style="flex:1;">JSON読込</button>
-                <button class="danger-btn" onclick="clearMemory()">全消去</button>
+            <div class="section-title">MEMORY MANAGEMENT</div>
+            <div style="display:flex; gap:5px; margin-bottom:5px;">
+                <button onclick="downloadJson()" style="flex:1;">保存 (Save)</button>
+                <button class="danger-btn" onclick="clearMemory()" style="flex:0.5;">消去</button>
+            </div>
+            <div style="display:flex; gap:5px; border-top:1px solid #222; padding-top:5px;">
+                <input type="file" id="jsonFileInput" style="display:none" onchange="handleJsonLoad(this)">
+                <button onclick="triggerJsonLoad('overwrite')" style="flex:1; color:#aaa;">上書き読込</button>
+                <button onclick="triggerJsonLoad('merge')" class="merge-btn" style="flex:1;">＋合成読込 (Merge)</button>
             </div>
         </div>
     </div>
 
     <div class="panel">
-        <div class="section-title">Chat Interface</div>
+        <div class="section-title">
+            <span>CHAT INTERFACE</span>
+            <label class="opt-label"><input type="checkbox" id="chatLearnToggle">会話学習モード</label>
+        </div>
         <div id="chatLog"></div>
         
-        <label class="toggle-label">
-            <input type="checkbox" id="chatLearnToggle">
-            <span>3. 会話から学習する (Real-time Learning)</span>
-        </label>
-
-        <div style="display: flex; margin-top:5px; gap:5px;">
-            <input type="text" id="userInput" placeholder="話しかける / きっかけの言葉">
+        <div style="display: flex; gap:5px;">
+            <input type="text" id="userInput" placeholder="Type message..." onkeydown="if(event.key==='Enter')generateText()">
             <button onclick="generateText()" style="width: 80px;">送信</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- AI Core ---
+    // --- CORE SYSTEM (V5) ---
     const ORDER = 3; 
     let brain = {};  
-    
-    // --- Variables ---
+    let loadMode = 'overwrite'; // 'overwrite' or 'merge'
+
+    // --- CRAWLER VARS ---
     const MAX_PAGES = 30; 
     let visitedUrls = new Set();
     let urlQueue = [];
     let isCrawling = false;
     let stopRequested = false;
 
-    // --- Init ---
+    // --- INITIALIZATION ---
     function acceptTerms() {
         document.getElementById('overlay').style.display = 'none';
-        log("システム起動完了。学習ソースを選択してください。");
+        log("System V0.0.5 initialized.");
     }
 
     function log(msg) {
         const div = document.getElementById('statusLog');
-        div.innerHTML += `<div>> ${msg}</div>`;
+        const time = new Date().toLocaleTimeString('ja-JP', {hour12:false});
+        div.innerHTML += `<div>[${time}] ${msg}</div>`;
         div.scrollTop = div.scrollHeight;
-    }
-
-    // --- Common: 学習関数 ---
-    function trainBrain(text, sourceName = "Unknown") {
-        if (!text) return;
-        text = text.replace(/\s+/g, ' ').trim();
-        if (text.length < ORDER) return;
-
-        let newPatterns = 0;
-        for (let i = 0; i < text.length - ORDER; i++) {
-            const gram = text.substring(i, i + ORDER);
-            const nextChar = text.charAt(i + ORDER);
-            if (!brain[gram]) brain[gram] = [];
-            brain[gram].push(nextChar);
-            newPatterns++;
-        }
-        updateStats();
-        // ログが流れすぎないように制御
-        if(sourceName !== "Chat") {
-            log(`${sourceName}: ${text.length}文字を消化しました`);
-        }
     }
 
     function updateStats() {
         document.getElementById('brainSize').innerText = Object.keys(brain).length;
     }
 
-    // --- Source 1: URL Crawler ---
+    // --- LEARNING ENGINE (FIXED & UPDATED) ---
+    function trainBrain(text, sourceInfo = "") {
+        if (!text) return;
+        // 空白処理の厳密化
+        text = text.replace(/\s+/g, ' ').trim();
+        if (text.length < ORDER) return;
+
+        let newCount = 0;
+        for (let i = 0; i < text.length - ORDER; i++) {
+            const gram = text.substring(i, i + ORDER);
+            const nextChar = text.charAt(i + ORDER);
+            
+            if (!brain[gram]) {
+                brain[gram] = [];
+            }
+            brain[gram].push(nextChar);
+            newCount++;
+        }
+        updateStats();
+        return newCount;
+    }
+
+    // --- 1. CRAWLER (No changes mostly, just stability) ---
     async function startCrawling() {
         const startUrl = document.getElementById('targetUrl').value;
         if (!startUrl) return alert("URLを入力してください");
@@ -178,56 +191,87 @@
         document.getElementById('btnStart').disabled = true;
         document.getElementById('btnStop').disabled = false;
 
-        visitedUrls.clear(); urlQueue = [startUrl];
+        // 初期化 (前回の中断があってもリセット)
+        visitedUrls.clear(); 
+        urlQueue = [startUrl];
         let pageCount = 0;
-        const baseDomain = new URL(startUrl).hostname;
+        
+        try {
+            const baseDomain = new URL(startUrl).hostname;
+            log(`Crawler started: ${baseDomain}`);
 
-        log(`Crawler開始: ${startUrl}`);
+            while (urlQueue.length > 0 && pageCount < MAX_PAGES) {
+                if (stopRequested) { log("Crawler stopped by user."); break; }
 
-        while (urlQueue.length > 0 && pageCount < MAX_PAGES) {
-            if (stopRequested) { log("Crawler停止"); break; }
+                const currentUrl = urlQueue.shift();
+                if (visitedUrls.has(currentUrl)) continue;
+                visitedUrls.add(currentUrl);
 
-            const currentUrl = urlQueue.shift();
-            if (visitedUrls.has(currentUrl)) continue;
-            visitedUrls.add(currentUrl);
+                try {
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(currentUrl)}`;
+                    const response = await fetch(proxyUrl);
+                    const data = await response.json();
+                    if (!data.contents) throw new Error("No content");
 
-            try {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(currentUrl)}`;
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                if (!data.contents) throw new Error("No Data");
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data.contents, 'text/html');
+                    doc.querySelectorAll('script, style, noscript, iframe').forEach(el => el.remove());
 
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, 'text/html');
-                doc.querySelectorAll('script, style, noscript, iframe').forEach(el => el.remove());
+                    const text = doc.body.textContent || "";
+                    trainBrain(text);
 
-                const text = doc.body.textContent || "";
-                trainBrain(text, `Page ${pageCount+1}`);
+                    // リンク取得
+                    doc.querySelectorAll('a').forEach(a => {
+                        try {
+                            const href = new URL(a.getAttribute('href'), currentUrl).href;
+                            if (href.includes(baseDomain) && !visitedUrls.has(href)) urlQueue.push(href);
+                        } catch(e) {}
+                    });
+                    
+                    pageCount++;
+                    log(`Parsed [${pageCount}/${MAX_PAGES}]: ${text.length} chars`);
+                    await new Promise(r => setTimeout(r, 500));
 
-                doc.querySelectorAll('a').forEach(a => {
-                    try {
-                        const href = new URL(a.getAttribute('href'), currentUrl).href;
-                        if (href.includes(baseDomain) && !visitedUrls.has(href)) urlQueue.push(href);
-                    } catch(e) {}
-                });
-                pageCount++;
-                await new Promise(r => setTimeout(r, 500));
-            } catch (err) { }
+                } catch (err) { 
+                    // エラーでも止まらず次へ
+                }
+            }
+        } catch(e) {
+            alert("URLが無効です");
         }
+
         isCrawling = false;
         document.getElementById('btnStart').disabled = false;
         document.getElementById('btnStop').disabled = true;
+        log("Crawler finished.");
     }
 
     function stopCrawling() { if (isCrawling) stopRequested = true; }
 
-    // --- Source 2: Text & File ---
+    // --- 2. TEXT INJECTION (COMMA SUPPORT) ---
     function learnManualText() {
-        const text = document.getElementById('manualText').value;
-        if (!text) return alert("テキストエリアが空です");
-        trainBrain(text, "Manual Input");
-        document.getElementById('manualText').value = ""; // クリア
-        alert("学習完了");
+        const inputVal = document.getElementById('manualText').value;
+        const isCommaMode = document.getElementById('commaMode').checked;
+
+        if (!inputVal) return;
+
+        if (isCommaMode) {
+            // カンマで分割して個別に学習
+            const segments = inputVal.split(',');
+            let count = 0;
+            segments.forEach(seg => {
+                if(seg.trim()) {
+                    trainBrain(seg.trim());
+                    count++;
+                }
+            });
+            log(`Comma Mode: ${count}単語を学習しました`);
+        } else {
+            // 通常学習
+            trainBrain(inputVal);
+            log(`Text injected: ${inputVal.length} chars`);
+        }
+        document.getElementById('manualText').value = "";
     }
 
     function loadTxtFile(input) {
@@ -235,34 +279,99 @@
         if(!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
-            trainBrain(e.target.result, file.name);
-            alert(`ファイル ${file.name} を学習しました`);
+            trainBrain(e.target.result);
+            log(`File loaded: ${file.name}`);
         };
-        reader.readAsText(file); // デフォルトUTF-8
-        input.value = ""; // リセット
+        reader.readAsText(file);
+        input.value = ""; // Fix: 同じファイルを再選択可能に
     }
 
-    // --- Source 3: Chat & Generation ---
+    // --- MEMORY MANAGEMENT (MERGE FEATURE) ---
+    function triggerJsonLoad(mode) {
+        loadMode = mode;
+        document.getElementById('jsonFileInput').click();
+    }
+
+    function handleJsonLoad(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const newBrain = JSON.parse(e.target.result);
+                const newKeys = Object.keys(newBrain).length;
+
+                if (loadMode === 'overwrite') {
+                    // 上書きモード
+                    brain = newBrain;
+                    log(`Memory Overwritten: ${newKeys} patterns.`);
+                } else {
+                    // 合成モード (MERGE)
+                    let mergedCount = 0;
+                    for (let key in newBrain) {
+                        if (brain[key]) {
+                            // 既存のキーがある場合は配列を結合 (頻度情報を強化)
+                            brain[key] = brain[key].concat(newBrain[key]);
+                        } else {
+                            // 新規キーならそのまま登録
+                            brain[key] = newBrain[key];
+                            mergedCount++;
+                        }
+                    }
+                    log(`Memory Merged: Added ${mergedCount} new patterns.`);
+                }
+                updateStats();
+                alert(loadMode === 'overwrite' ? "データを上書きしました" : "データを合成しました");
+            } catch (err) {
+                alert("JSONファイルが壊れているか、形式が違います");
+                console.error(err);
+            }
+        };
+        reader.readAsText(file);
+        input.value = ""; // Fix
+    }
+
+    function downloadJson() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(brain));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `ai_brain_v5_${Date.now()}.json`;
+        a.click();
+    }
+
+    function clearMemory() {
+        if(confirm("本当にメモリを全消去しますか？")) {
+            brain = {}; updateStats(); log("Memory cleared.");
+        }
+    }
+
+    // --- INTERACTION ---
     function generateText() {
         const inputEl = document.getElementById('userInput');
         const seed = inputEl.value;
-        const isLearningMode = document.getElementById('chatLearnToggle').checked;
+        const isChatLearn = document.getElementById('chatLearnToggle').checked;
 
-        // 会話学習モードなら、ユーザーの発言を学習する
-        if (isLearningMode && seed) {
-            trainBrain(seed, "Chat");
+        if (isChatLearn && seed) {
+            trainBrain(seed);
         }
 
+        // 脳が空の場合のクラッシュ防止
         const keys = Object.keys(brain);
-        if (keys.length === 0) return alert("脳が空っぽです。何か学習させてください。");
+        if (keys.length === 0) {
+            log("Error: Brain is empty.");
+            return alert("学習データがありません。");
+        }
 
         let currentGram = seed.slice(-ORDER);
-        if (!brain[currentGram]) {
+        // 該当する続きがない、または種がない場合はランダム
+        if (!currentGram || !brain[currentGram]) {
             currentGram = keys[Math.floor(Math.random() * keys.length)];
         }
 
         let result = seed ? seed : currentGram;
         
+        // 生成ループ
         for (let i = 0; i < 150; i++) {
             const possibilities = brain[currentGram];
             if (!possibilities) break;
@@ -271,43 +380,19 @@
             currentGram = result.slice(-ORDER);
         }
 
+        // 表示
         const logDiv = document.getElementById('chatLog');
+        const userLabel = isChatLearn ? "[User+Learn]" : "[User]";
         
-        // ユーザーの吹き出し
-        let userLabel = isLearningMode ? "[User (Learned)]" : "[User]";
-        logDiv.innerHTML += `<div class="user-msg"><span style="font-size:10px; color:#666;">${userLabel}</span><br>${seed}</div>`;
-        
-        // AIの吹き出し
+        if(seed) {
+            logDiv.innerHTML += `<div class="user-msg"><span style="font-size:10px; color:#555;">${userLabel}</span><br>${seed}</div>`;
+        }
         logDiv.innerHTML += `<div class="ai-msg">${result}</div>`;
         logDiv.scrollTop = logDiv.scrollHeight;
         
-        inputEl.value = ""; // 入力欄クリア
-    }
-
-    // --- Memory Management ---
-    function downloadJson() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(brain));
-        const a = document.createElement('a');
-        a.href = dataStr;
-        a.download = "ai_brain_v4.json";
-        a.click();
-    }
-    function loadJsonFile(input) {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            brain = JSON.parse(e.target.result);
-            updateStats();
-            log("JSONメモリを復元しました");
-        };
-        reader.readAsText(file);
-        input.value = "";
-    }
-    function clearMemory() {
-        if(confirm("全学習データを消去しますか？")) {
-            brain = {}; updateStats(); log("メモリ初期化完了");
-        }
+        inputEl.value = "";
     }
 </script>
+
 </body>
 </html>
